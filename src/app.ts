@@ -1,5 +1,9 @@
 import path from "node:path";
-import express, { type Application, type Request, type Response } from "express";
+import express, {
+  type Application,
+  type Request,
+  type Response,
+} from "express";
 import helmet from "helmet";
 import cors from "cors";
 import compression from "compression";
@@ -28,8 +32,7 @@ export function createApp(env: Env, logger: Logger): Application {
       genReqId: (req, _res) => req.requestId,
       customProps: (req, _res) => ({ requestId: req.requestId }),
       autoLogging: {
-        ignore: (req) =>
-          req.url === "/api/health" || req.url === "/api/ready",
+        ignore: (req) => req.url === "/api/health" || req.url === "/api/ready",
       },
     }),
   );
@@ -41,7 +44,9 @@ export function createApp(env: Env, logger: Logger): Application {
   );
   const corsOrigin =
     env.CORS_ORIGIN !== undefined
-      ? env.CORS_ORIGIN.split(",").map((o) => o.trim()).filter(Boolean)
+      ? env.CORS_ORIGIN.split(",")
+          .map((o) => o.trim())
+          .filter(Boolean)
       : env.NODE_ENV !== "production";
 
   app.use(
@@ -54,6 +59,7 @@ export function createApp(env: Env, logger: Logger): Application {
   app.use(express.json({ limit: "2mb" }));
   app.use(express.urlencoded({ extended: true, limit: "2mb" }));
 
+  // 300 request per 15 mins
   app.use(
     rateLimit({
       windowMs: 15 * 60 * 1000,
@@ -68,10 +74,6 @@ export function createApp(env: Env, logger: Logger): Application {
   );
 
   registerRoutes(app);
-
-  app.get("/", (_req, res) => {
-    res.sendFile(path.join(process.cwd(), "index.html"));
-  });
 
   app.use(notFoundHandler);
   app.use(createErrorHandler(logger, env));
