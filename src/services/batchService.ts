@@ -8,6 +8,7 @@ import { parseUrlInput } from "../lib/parseUrlInput";
 import { Batch } from "../models/Batch";
 import { UrlCheck } from "../models/UrlCheck";
 import type { BatchListCache } from "./batchListCache";
+import { enqueueUrlCheckJob } from "../queue/enqueueUrlCheckJob";
 import type { UrlCheckJobData } from "../queue/urlCheckQueue";
 import { emitBatchCancelled } from "../socket/socket";
 import type { BatchProgressDto, UrlCheckResultDto } from "../shared/domain";
@@ -103,7 +104,7 @@ export type BatchServiceDeps = {
 };
 
 export class BatchService {
-  constructor(private readonly deps: BatchServiceDeps) {}
+  constructor(private readonly deps: BatchServiceDeps) { }
 
   async createBatchFromInput(raw: string): Promise<{ batchId: string; totalUrls: number }> {
     const urls = parseUrlInput(raw);
@@ -141,14 +142,14 @@ export class BatchService {
     const inserted = await UrlCheck.insertMany(docs);
 
     for (const c of inserted) {
-      await this.deps.queue.add(
-        "url-check",
+      await enqueueUrlCheckJob(
+        this.deps.queue,
         {
           batchId: batch._id.toString(),
           urlCheckId: c._id.toString(),
           url: c.url,
         },
-        { jobId: c._id.toString() },
+        c._id.toString(),
       );
     }
 
@@ -263,6 +264,7 @@ export class BatchService {
     const n = queued.length;
 
     if (n > 0) {
+      // TODO: keep in transection
       await UrlCheck.updateMany(
         { batchId: b._id, status: "queued" },
         { $set: { status: "cancelled", finishedAt: now } },
@@ -278,6 +280,7 @@ export class BatchService {
       await Batch.updateOne({ _id: b._id }, { $set: { status: "cancelled" } });
     }
 
+    // remove jobs from queue
     const jobs = await this.deps.queue.getJobs(["waiting", "delayed"]);
     for (const job of jobs) {
       const d = job.data as { batchId?: string };
@@ -286,6 +289,7 @@ export class BatchService {
       }
     }
 
+    // invalidate cache
     await this.deps.cache.invalidate();
     emitBatchCancelled(this.deps.io, batchId);
 
@@ -347,14 +351,14 @@ export class BatchService {
     );
 
     for (const c of failed) {
-      await this.deps.queue.add(
-        "url-check",
+      await enqueueUrlCheckJob(
+        this.deps.queue,
         {
           batchId: b._id.toString(),
           urlCheckId: c._id.toString(),
           url: c.url,
         },
-        { jobId: c._id.toString() },
+        c._id.toString(),
       );
     }
 
