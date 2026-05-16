@@ -4,11 +4,12 @@ services:
     container_name: dashboard_mongodb
     restart: unless-stopped
     ports:
-      - "${MONGO_PORT:-27017}:27017"
+      # Default 27018 avoids conflict with a local mongod on 27017 (common on macOS)
+      - "${MONGO_PORT:-27018}:27017"
     environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-root}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-devpassword}
-      MONGO_INITDB_DATABASE: ${MONGO_DATABASE:-dashboard}
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: devpassword
+      MONGO_INITDB_DATABASE: dashboard
     volumes:
       - mongo_data:/data/db
     healthcheck:
@@ -16,7 +17,7 @@ services:
         [
           "CMD",
           "mongosh",
-          "mongodb://${MONGO_ROOT_USER:-root}:${MONGO_ROOT_PASSWORD:-devpassword}@127.0.0.1:27017/admin",
+          "mongodb://root:devpassword@127.0.0.1:27017/admin",
           "--eval",
           "db.adminCommand({ ping: 1 })",
           "--quiet",
@@ -31,7 +32,7 @@ services:
     container_name: dashboard_redis
     restart: unless-stopped
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - "6379:6379"
     volumes:
       - redis_data:/data
     command: redis-server --appendonly yes
