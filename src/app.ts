@@ -1,3 +1,4 @@
+import path from "node:path";
 import express, { type Application, type Request, type Response } from "express";
 import helmet from "helmet";
 import cors from "cors";
@@ -67,6 +68,10 @@ export function createApp(env: Env, logger: Logger): Application {
   );
 
   registerRoutes(app);
+
+  app.get("/", (_req, res) => {
+    res.sendFile(path.join(process.cwd(), "index.html"));
+  });
 
   app.use(notFoundHandler);
   app.use(createErrorHandler(logger, env));
