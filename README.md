@@ -31,3 +31,7 @@ pnpm run dev
 ```
 
 Check which port the backend is running on — make sure the same port is set in your Next.js frontend's `NEXT_PUBLIC_API_URL`.
+
+## Architecture & trade-offs
+
+![Dashboard backend architecture diagram](./architecture/image.png)
