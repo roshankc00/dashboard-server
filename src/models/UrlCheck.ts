@@ -7,7 +7,6 @@ const urlCheckSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "Batch",
       required: true,
-      index: true,
     },
     url: { type: String, required: true },
     order: { type: Number, required: true, min: 0 },
@@ -16,7 +15,6 @@ const urlCheckSchema = new Schema(
       enum: URL_CHECK_STATUSES,
       required: true,
       default: "queued",
-      index: true,
     },
     statusCode: { type: Number, default: null },
     responseTimeMs: { type: Number, default: null },
@@ -27,7 +25,11 @@ const urlCheckSchema = new Schema(
   { timestamps: true },
 );
 
+// getBatchDetail
 urlCheckSchema.index({ batchId: 1, order: 1 });
+
+// cancelBatch retryFailed (find rah update many)
+urlCheckSchema.index({ batchId: 1, status: 1 });
 
 export type UrlCheckDoc = InferSchemaType<typeof urlCheckSchema> & {
   _id: mongoose.Types.ObjectId;

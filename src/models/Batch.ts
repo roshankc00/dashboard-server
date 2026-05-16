@@ -8,7 +8,6 @@ const batchSchema = new Schema(
       enum: BATCH_STATUSES,
       required: true,
       default: "queued",
-      index: true,
     },
     totalUrls: { type: Number, required: true, min: 0 },
     finishedCount: { type: Number, required: true, default: 0, min: 0 },
@@ -18,6 +17,9 @@ const batchSchema = new Schema(
   },
   { timestamps: true },
 );
+
+// listBatches
+batchSchema.index({ createdAt: -1 });
 
 export type BatchDoc = InferSchemaType<typeof batchSchema> & {
   _id: mongoose.Types.ObjectId;
